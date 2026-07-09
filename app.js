@@ -2,6 +2,17 @@ if (process.env.NODE_ENV !== "production") {
     require('dotenv').config();
 }
 
+// Fail fast with a clear message if required env vars are missing,
+// instead of crashing deep inside a dependency (e.g. Mapbox SDK / Cloudinary).
+const requiredEnv = ['MAPBOX_TOKEN', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_KEY', 'CLOUDINARY_SECRET'];
+const missingEnv = requiredEnv.filter(key => !process.env[key]);
+if (missingEnv.length) {
+    console.error(`Missing required environment variable(s): ${missingEnv.join(', ')}`);
+    console.error('Add them to your .env file (see .env.example) before starting the server.');
+    process.exit(1);
+}
+
+const crypto = require('crypto');
 const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
@@ -19,16 +30,11 @@ const userRoutes = require('./routes/users');
 const campgroundRoutes = require('./routes/campgrounds');
 const reviewRoutes = require('./routes/reviews');
 
-const MongoDBStore = require("connect-mongo")(session);
+const MongoStore = require("connect-mongo").MongoStore;
 
 const dbUrl = process.env.DB_URL || 'mongodb://localhost:27017/yelp-camp';
 
-mongoose.connect(dbUrl, {
-    useNewUrlParser: true,
-    useCreateIndex: true,
-    useUnifiedTopology: true,
-    useFindAndModify: false
-});
+mongoose.connect(dbUrl);
 
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "connection error:"));
@@ -37,6 +43,11 @@ db.once("open", () => {
 });
 
 const app = express();
+
+app.locals.currentUser = null;
+app.locals.success = [];
+app.locals.error = [];
+app.locals.csrfToken = null;
 
 app.engine('ejs', ejsMate)
 app.set('view engine', 'ejs');
@@ -49,10 +60,13 @@ app.use(mongoSanitize({
     replaceWith: '_'
 }))
 const secret = process.env.SECRET || 'thisshouldbeabettersecret!';
+if (process.env.NODE_ENV === 'production' && !process.env.SECRET) {
+    console.error('Missing required environment variable: SECRET (refusing to run in production with a default secret).');
+    process.exit(1);
+}
 
-const store = new MongoDBStore({
-    url: dbUrl,
-    secret,
+const store = MongoStore.create({
+    mongoUrl: dbUrl,
     touchAfter: 24 * 60 * 60
 });
 
@@ -68,7 +82,8 @@ const sessionConfig = {
     saveUninitialized: true,
     cookie: {
         httpOnly: true,
-        // secure: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
         expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
         maxAge: 1000 * 60 * 60 * 24 * 7
     }
@@ -115,7 +130,7 @@ app.use(
                 "'self'",
                 "blob:",
                 "data:",
-                "https://res.cloudinary.com/douqbebwk/", //SHOULD MATCH YOUR CLOUDINARY ACCOUNT! 
+                `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/`,
                 "https://images.unsplash.com",
             ],
             fontSrc: ["'self'", ...fontSrcUrls],
@@ -132,9 +147,20 @@ passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
 app.use((req, res, next) => {
-    res.locals.currentUser = req.user;
+    res.locals.currentUser = req.user || null;
     res.locals.success = req.flash('success');
     res.locals.error = req.flash('error');
+    next();
+})
+
+// Generate a per-session CSRF token, made available to all views as
+// `csrfToken`. Forms embed it in a hidden `_csrf` field; middleware.verifyCsrf
+// checks it on every state-changing request (see routes/*.js).
+app.use((req, res, next) => {
+    if (!req.session.csrfToken) {
+        req.session.csrfToken = crypto.randomBytes(32).toString('hex');
+    }
+    res.locals.csrfToken = req.session.csrfToken;
     next();
 })
 

@@ -28,6 +28,22 @@
         </div>
     </div>
     <% }%>
+
+    <% if (totalPages > 1) { %>
+    <nav aria-label="Campground pages" class="my-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item <%= page <= 1 ? 'disabled' : '' %>">
+                <a class="page-link" href="?page=<%= page - 1 %>">Previous</a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">Page <%= page %> of <%= totalPages %></span>
+            </li>
+            <li class="page-item <%= page >= totalPages ? 'disabled' : '' %>">
+                <a class="page-link" href="?page=<%= page + 1 %>">Next</a>
+            </li>
+        </ul>
+    </nav>
+    <% } %>
 </div>
 <script>
     const mapToken = '<%-process.env.MAPBOX_TOKEN%>';

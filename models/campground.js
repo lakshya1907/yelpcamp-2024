@@ -42,9 +42,22 @@ const CampgroundSchema = new Schema({
             type: Schema.Types.ObjectId,
             ref: 'Review'
         }
-    ]
+    ],
+    // Cached AI-generated summary of all reviews (utils/aiInsights.js).
+    // Regenerated only when the review count changes, to avoid an API
+    // call on every page view.
+    reviewSummary: {
+        type: String,
+        default: null
+    },
+    reviewSummaryReviewCount: {
+        type: Number,
+        default: 0
+    }
 }, opts);
 
+// Speeds up any geo-radius / "near me" style queries against this field.
+CampgroundSchema.index({ geometry: '2dsphere' });
 
 CampgroundSchema.virtual('properties.popUpMarkup').get(function () {
     return `

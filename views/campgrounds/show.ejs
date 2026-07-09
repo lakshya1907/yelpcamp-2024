@@ -37,6 +37,7 @@
             <div class="card-body">
                 <a class="card-link btn btn-info" href="/campgrounds/<%=campground._id%>/edit">Edit</a>
                 <form class="d-inline" action="/campgrounds/<%=campground._id%>?_method=DELETE" method="POST">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <button class="btn btn-danger">Delete</button>
                 </form>
             </div>
@@ -53,6 +54,7 @@
         <% if(currentUser){ %>
         <h2>Leave a Review</h2>
         <form action="/campgrounds/<%=campground._id%>/reviews" method="POST" class="mb-3 validated-form" novalidate>
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <!-- <div class="mb-3">
                 <label class="form-label" for="rating">Rating</label>
                 <input class="form-range" type="range" min="1" max="5" name="review[rating]" id="rating">
@@ -81,10 +83,24 @@
             <button class="btn btn-success">Submit</button>
         </form>
         <% } %>
+        <% if (campground.reviewSummary) { %>
+        <div class="card mb-3 border-info">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2 text-info">✨ AI Summary of Reviews</h6>
+                <p class="card-text"><%= campground.reviewSummary %></p>
+            </div>
+        </div>
+        <% } %>
         <% for(let review of campground.reviews) { %>
         <div class="card mb-3 ">
             <div class="card-body">
-                <h5 class="card-title"> <%= review.author.username%></h5>
+                <h5 class="card-title"> <%= review.author.username%>
+                    <% if (review.sentiment) { %>
+                    <span class="badge <%= review.sentiment === 'positive' ? 'bg-success' : review.sentiment === 'negative' ? 'bg-danger' : 'bg-secondary' %>">
+                        <%= review.sentiment %>
+                    </span>
+                    <% } %>
+                </h5>
                 <p class="starability-result" data-rating="<%=review.rating%>">
                     Rated: <%= review.rating %> stars
                 </p>
@@ -92,6 +108,7 @@
                 <p class="card-text">Review: <%= review.body %></p>
                 <%  if( currentUser && review.author.equals(currentUser._id))  {%>
                 <form action="/campgrounds/<%=campground._id%>/reviews/<%=review._id%>?_method=DELETE" method="POST">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <button class="btn btn-sm btn-danger">Delete</button>
                 </form>
                 <% } %>
