@@ -91,6 +91,28 @@
             </div>
         </div>
         <% } %>
+        <% if (campground.aspectSummary) { %>
+        <div class="card mb-3 border-info">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-3 text-info">✨ Review Breakdown by Category</h6>
+                <div class="row g-2">
+                    <% const labels = { cleanliness: 'Cleanliness', location: 'Location', host_quality: 'Host Quality', wifi: 'Wi-Fi', value: 'Value' }; %>
+                    <% const badgeClass = { positive: 'bg-success', negative: 'bg-danger', mixed: 'bg-warning text-dark', not_mentioned: 'bg-secondary' }; %>
+                    <% for (const key of Object.keys(labels)) {
+                        const aspect = campground.aspectSummary[key];
+                        if (!aspect) continue;
+                    %>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start gap-2">
+                            <span class="badge <%= badgeClass[aspect.sentiment] || 'bg-secondary' %>"><%= labels[key] %></span>
+                            <small class="text-muted"><%= aspect.summary || 'Not mentioned by reviewers' %></small>
+                        </div>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+        <% } %>
         <% for(let review of campground.reviews) { %>
         <div class="card mb-3 ">
             <div class="card-body">

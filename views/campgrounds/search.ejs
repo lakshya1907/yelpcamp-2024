@@ -1,0 +1,48 @@
+<% layout('layouts/boilerplate') %>
+
+<div class="row">
+    <div class="col-lg-8 offset-lg-2">
+        <h2 class="mb-1">Find your campground</h2>
+        <p class="text-muted">Describe what you're looking for in plain language - the search understands meaning, not just keywords.</p>
+        <form action="/campgrounds/search" method="GET" class="mb-4">
+            <div class="input-group input-group-lg">
+                <input
+                    type="text"
+                    name="q"
+                    class="form-control"
+                    placeholder='e.g. "quiet mountain campground near a lake with wifi under 5000"'
+                    value="<%= query %>"
+                    required
+                >
+                <button class="btn btn-success" type="submit">Search</button>
+            </div>
+        </form>
+
+        <% if (campgrounds === null) { %>
+        <p class="text-muted">Try a search above to get started.</p>
+        <% } else if (campgrounds.length === 0) { %>
+        <p class="text-muted">No campgrounds matched "<%= query %>". Try describing it differently.</p>
+        <% } else { %>
+        <p class="text-muted">Showing results for "<%= query %>"</p>
+        <% for (let campground of campgrounds) { %>
+        <div class="card mb-3">
+            <div class="row g-0">
+                <% if (campground.images && campground.images[0]) { %>
+                <div class="col-md-4">
+                    <img src="<%= campground.images[0].url %>" class="img-fluid rounded-start h-100" style="object-fit: cover;" alt="<%= campground.title %>">
+                </div>
+                <% } %>
+                <div class="col-md-8">
+                    <div class="card-body">
+                        <h5 class="card-title"><%= campground.title %></h5>
+                        <p class="card-text text-muted mb-1"><%= campground.location %></p>
+                        <p class="card-text">₹<%= campground.price %>/night</p>
+                        <a href="/campgrounds/<%= campground._id %>" class="btn btn-primary btn-sm">View</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <% } %>
+        <% } %>
+    </div>
+</div>

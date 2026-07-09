@@ -53,6 +53,20 @@ const CampgroundSchema = new Schema({
     reviewSummaryReviewCount: {
         type: Number,
         default: 0
+    },
+    // Cached category breakdown (cleanliness/location/host_quality/wifi/value)
+    // from utils/aiInsights.js#analyzeReviewAspects. Shares the review-count
+    // trigger above with reviewSummary, so both regenerate together.
+    aspectSummary: {
+        type: Schema.Types.Mixed,
+        default: null
+    },
+    // Semantic embedding of title+location+description, used for vector
+    // search (see routes/campgrounds.js `/search` and utils/embeddings.js).
+    // `select: false` keeps this ~1024-float array out of normal queries.
+    embedding: {
+        type: [Number],
+        select: false
     }
 }, opts);
 

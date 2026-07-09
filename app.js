@@ -44,11 +44,6 @@ db.once("open", () => {
 
 const app = express();
 
-app.locals.currentUser = null;
-app.locals.success = [];
-app.locals.error = [];
-app.locals.csrfToken = null;
-
 app.engine('ejs', ejsMate)
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'))
@@ -147,7 +142,7 @@ passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
 app.use((req, res, next) => {
-    res.locals.currentUser = req.user || null;
+    res.locals.currentUser = req.user;
     res.locals.success = req.flash('success');
     res.locals.error = req.flash('error');
     next();
