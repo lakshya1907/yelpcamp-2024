@@ -409,6 +409,4 @@ Not currently implemented (see [Future Improvements](#future-improvements)): aut
 - Hybrid recommendation engine (combining collaborative signals with the existing embeddings).
 - "Near me" geo-radius search route, using the existing 2dsphere index (currently unused by any route).
 
-## Author
 
-Lakshya Jindal
