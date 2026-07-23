@@ -1,0 +1,28 @@
+<% layout('layouts/boilerplate')%>
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <div class="card mb-3">
+            <div class="card-header">
+                Booking <%= booking.status === 'cancelled' ? '(Cancelled)' : 'Confirmed' %>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title"><%= booking.campground ? booking.campground.title : '(campground deleted)' %></h5>
+                <p class="card-text">
+                    <%= booking.startDate.toDateString() %> &rarr; <%= booking.endDate.toDateString() %>
+                    (<%= booking.nights %> night<%= booking.nights === 1 ? '' : 's' %>)
+                </p>
+                <p class="card-text"><strong>Total paid: $<%= booking.totalPrice.toFixed(2) %></strong></p>
+                <% if (booking.campground) { %>
+                    <a href="/campgrounds/<%= booking.campground._id %>" class="btn btn-secondary btn-sm">View Campground</a>
+                <% } %>
+                <% if (booking.status !== 'cancelled') { %>
+                    <form action="/bookings/<%= booking._id %>?_method=DELETE" method="POST" class="d-inline">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button class="btn btn-danger btn-sm">Cancel Booking</button>
+                    </form>
+                <% } %>
+            </div>
+        </div>
+        <a href="/bookings">All my bookings</a>
+    </div>
+</div>

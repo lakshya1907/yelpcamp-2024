@@ -1,0 +1,77 @@
+<% layout('layouts/boilerplate')%>
+<div class="row">
+    <h1 class="text-center">Book <%= campground.title %></h1>
+    <div class="col-md-6 offset-md-3">
+        <p class="text-muted">$<%= campground.price %>/night</p>
+        <form action="/campgrounds/<%= campground._id %>/book" method="POST" novalidate class="validated-form" id="booking-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="mb-3">
+                <label class="form-label" for="startDate">Check-in</label>
+                <input class="form-control" type="date" id="startDate" name="booking[startDate]" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="endDate">Check-out</label>
+                <input class="form-control" type="date" id="endDate" name="booking[endDate]" required>
+            </div>
+            <div class="mb-3">
+                <strong>Total: $<span id="total-price">0</span></strong>
+                <span id="nights-label" class="text-muted"></span>
+            </div>
+            <div class="mb-3">
+                <button class="btn btn-success">Confirm Booking</button>
+            </div>
+        </form>
+        <a href="/campgrounds/<%= campground._id %>">Back to campground</a>
+    </div>
+</div>
+
+<script>
+    // Client-side price preview and disabling already-booked nights - purely
+    // a UX convenience. The database transaction in the booking controller
+    // is what actually enforces no double-booking; this script cannot be
+    // trusted and is not relied on for correctness.
+    const PRICE_PER_NIGHT = <%- campground.price %>;
+    const startInput = document.getElementById('startDate');
+    const endInput = document.getElementById('endDate');
+    const totalEl = document.getElementById('total-price');
+    const nightsEl = document.getElementById('nights-label');
+
+    const today = new Date().toISOString().split('T')[0];
+    startInput.min = today;
+
+    function updateTotal() {
+        const start = new Date(startInput.value);
+        const end = new Date(endInput.value);
+        endInput.min = startInput.value;
+        if (startInput.value && endInput.value && end > start) {
+            const nights = Math.round((end - start) / (1000 * 60 * 60 * 24));
+            totalEl.textContent = (nights * PRICE_PER_NIGHT).toFixed(2);
+            nightsEl.textContent = `(${nights} night${nights === 1 ? '' : 's'})`;
+        } else {
+            totalEl.textContent = '0';
+            nightsEl.textContent = '';
+        }
+    }
+    startInput.addEventListener('change', updateTotal);
+    endInput.addEventListener('change', updateTotal);
+
+    // Fetch already-booked nights so we can warn before submit (best effort;
+    // the real check happens server-side).
+    fetch('/campgrounds/<%= campground._id %>/booked-dates')
+        .then(res => res.json())
+        .then(dates => {
+            const booked = new Set(dates.map(d => d.split('T')[0]));
+            document.getElementById('booking-form').addEventListener('submit', (e) => {
+                const start = new Date(startInput.value);
+                const end = new Date(endInput.value);
+                for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+                    if (booked.has(d.toISOString().split('T')[0])) {
+                        alert('One or more of those nights are already booked. Please choose different dates.');
+                        e.preventDefault();
+                        return;
+                    }
+                }
+            });
+        })
+        .catch(() => { /* non-critical, server still validates */ });
+</script>

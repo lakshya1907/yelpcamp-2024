@@ -31,12 +31,18 @@ module.exports.campgroundSchema = Joi.object({
         description: Joi.string().required().escapeHTML()
     }).required(),
     deleteImages: Joi.array()
-});
+}).unknown(true);
 
 module.exports.reviewSchema = Joi.object({
     review: Joi.object({
         rating: Joi.number().required().min(1).max(5),
         body: Joi.string().required().escapeHTML()
     }).required()
-})
+}).unknown(true)
 
+module.exports.bookingSchema = Joi.object({
+    booking: Joi.object({
+        startDate: Joi.date().required(),
+        endDate: Joi.date().required().greater(Joi.ref('startDate'))
+    }).required()
+}).unknown(true);

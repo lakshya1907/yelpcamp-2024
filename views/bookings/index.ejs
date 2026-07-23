@@ -1,0 +1,26 @@
+<% layout('layouts/boilerplate')%>
+<h1 class="text-center mb-4">My Bookings</h1>
+<% if (bookings.length === 0) { %>
+    <p class="text-center text-muted">You don't have any bookings yet. <a href="/campgrounds">Browse campgrounds</a>.</p>
+<% } %>
+<div class="row">
+    <% for (let booking of bookings) { %>
+        <div class="col-md-6 mb-3">
+            <div class="card <%= booking.status === 'cancelled' ? 'border-secondary' : '' %>">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <%= booking.campground ? booking.campground.title : '(campground deleted)' %>
+                        <% if (booking.status === 'cancelled') { %>
+                            <span class="badge bg-secondary">Cancelled</span>
+                        <% } %>
+                    </h5>
+                    <p class="card-text">
+                        <%= booking.startDate.toDateString() %> &rarr; <%= booking.endDate.toDateString() %>
+                        &middot; $<%= booking.totalPrice.toFixed(2) %>
+                    </p>
+                    <a href="/bookings/<%= booking._id %>" class="btn btn-primary btn-sm">Details</a>
+                </div>
+            </div>
+        </div>
+    <% } %>
+</div>
