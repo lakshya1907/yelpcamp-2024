@@ -1,48 +1,70 @@
+// utils/embeddings.js
 const VOYAGE_API_URL = 'https://api.voyageai.com/v1/embeddings';
 const EMBEDDING_MODEL = 'voyage-3.5';
-const EMBEDDING_DIMENSIONS = 1024; // must match the Atlas vector index definition
+const EMBEDDING_DIMENSIONS = 1024;
 
-// Generates an embedding vector for a piece of text via Voyage AI.
-// `inputType` should be 'document' when embedding campground listings and
-// 'query' when embedding a user's search text - Voyage tunes the vector
-// differently for each side of a retrieval pair, which meaningfully
-// improves search relevance.
 async function getEmbedding(text, inputType = 'document') {
     if (!process.env.VOYAGE_API_KEY || !text) return null;
 
-    try {
-        const res = await fetch(VOYAGE_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.VOYAGE_API_KEY}`
-            },
-            body: JSON.stringify({
-                input: [text],
-                model: EMBEDDING_MODEL,
-                input_type: inputType,
-                output_dimension: EMBEDDING_DIMENSIONS
-            })
-        });
+    const maxRetries = 5;
+    let attempt = 0;
+    let delay = 2000;
 
-        if (!res.ok) {
-            console.error('Voyage embedding request failed:', res.status, await res.text());
-            return null;
+    while (attempt < maxRetries) {
+        try {
+            const res = await fetch(VOYAGE_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.VOYAGE_API_KEY}`
+                },
+                body: JSON.stringify({
+                    input: [text],
+                    model: EMBEDDING_MODEL,
+                    input_type: inputType,
+                    output_dimension: EMBEDDING_DIMENSIONS
+                })
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                if (res.status === 429) {
+                    console.log(`⏳ Rate limit hit. Waiting ${delay/1000}s...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                    attempt++;
+                    continue;
+                }
+                console.error('Voyage embedding request failed:', res.status, errorText);
+                return null;
+            }
+
+            const data = await res.json();
+            return data.data[0].embedding;
+        } catch (err) {
+            console.error('Voyage embedding request errored:', err.message);
+            attempt++;
+            if (attempt < maxRetries) {
+                console.log(`⏳ Network error, retrying in ${delay/1000}s...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2;
+            } else {
+                return null;
+            }
         }
-
-        const data = await res.json();
-        return data.data[0].embedding;
-    } catch (err) {
-        console.error('Voyage embedding request errored:', err.message);
-        return null;
     }
+    return null;
 }
 
-// Combines the fields worth searching on into one blob of text to embed.
 function buildEmbeddingText(campground) {
     return [campground.title, campground.location, campground.description]
         .filter(Boolean)
         .join('. ');
 }
 
-module.exports = { getEmbedding, buildEmbeddingText, EMBEDDING_MODEL, EMBEDDING_DIMENSIONS };
+module.exports = {
+    getEmbedding,
+    buildEmbeddingText,
+    EMBEDDING_MODEL,
+    EMBEDDING_DIMENSIONS
+};

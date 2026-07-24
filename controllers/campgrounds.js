@@ -55,11 +55,19 @@ module.exports.showCampground = async (req, res,) => {
     }
     // Only re-run AI analysis when the review count has changed, so we
     // don't burn API calls on every single page view.
-    if (campground.reviews.length > 0 && campground.reviews.length !== campground.reviewSummaryReviewCount) {
+    if (campground.reviews.length > 0) {
+        const { performance } = require("perf_hooks");
+
+        const start = performance.now();
+
         const [summary, aspects] = await Promise.all([
             summarizeReviews(campground.reviews),
             analyzeReviewAspects(campground.reviews)
         ]);
+
+        const end = performance.now();
+
+        console.log(`AI generation took ${(end - start).toFixed(2)} ms`);
         if (summary) campground.reviewSummary = summary;
         if (aspects) campground.aspectSummary = aspects;
         campground.reviewSummaryReviewCount = campground.reviews.length;
